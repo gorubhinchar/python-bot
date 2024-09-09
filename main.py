@@ -1,26 +1,65 @@
 import telebot
+import random
+import json
+import os
 from telebot import types
 
 # Initialize the bot with your token
-bot = telebot.TeleBot('7525252627:AAGc_NEVAWChST5O_WkBMCLhVeaYlFnaeGw')
+bot = telebot.TeleBot('7375816473:AAE34HP0HJW5gy2mEupjLVikZ6Z421JZM1k')
+
+# Define possible predictions
+result = ["🐉BIG🐉","☃️SMALL☃️", "🔴RED🔴" , "🟢GREEN🟢"]
+
+
+AUTHORIZED_USERS_FILE = 'authorized_users.json'
+
+def load_authorized_users():
+    """Load authorized users from the JSON file."""
+    if not os.path.isfile(AUTHORIZED_USERS_FILE):
+        # Create file with empty list if it doesn't exist
+        with open(AUTHORIZED_USERS_FILE, 'w') as file:
+            json.dump({"authorized_users": []}, file)
+        return set()
+
+    with open(AUTHORIZED_USERS_FILE, 'r') as file:
+        data = json.load(file)
+        return set(data.get('authorized_users', []))
+
+def save_authorized_users(users):
+    """Save authorized users to the JSON file."""
+    data = {'authorized_users': list(users)}
+    with open(AUTHORIZED_USERS_FILE, 'w') as file:
+        json.dump(data, file, indent=4)
+
+# Load authorized users from file
+AUTHORIZED_USERS = load_authorized_users()
+
+def is_authorized(user_id):
+    """Check if a user is authorized."""
+    return user_id in AUTHORIZED_USERS
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    # Create an inline keyboard with three "Join" buttons
-    keyboard = types.InlineKeyboardMarkup()
-    join_button1 = types.InlineKeyboardButton(text="Free hack❤️ ", url="https://t.me/trust_me_brother")
-    join_button2 = types.InlineKeyboardButton(text="Help❤️", url="https://t.me/mafiya_bhai_support")
-    join_button3 = types.InlineKeyboardButton(text="FF ID❤️", url="https://t.me/demo_account_super")
-    join_button4 = types.InlineKeyboardButton(text="Owner❤️", url="https://t.me/rdx_mafiya_000")
-    join_button5 = types.InlineKeyboardButton(text="Bot Developer❤️", url="https://t.me/greyhat_forest")
-    keyboard.add(join_button1, join_button2, join_button3, join_button4, join_button5)
-
-    bot.reply_to(message, "🥹 You must join our channels to access exclusive content.", reply_markup=keyboard)
+    if is_authorized(message.from_user.id):
+        bot.reply_to(message, "Please enter the last 3 digits of the period number.")
+    else:
+        user_id = message.from_user.id
+        bot.reply_to(message, f"You are not authorized to use this bot.\nYour user ID is: {user_id}")
+        keyboard = types.InlineKeyboardMarkup()
+        join_button = types.InlineKeyboardButton(text="Godwin🔐", url="https://t.me/greyhat_forest")
+        keyboard.add(join_button)
+        bot.send_message(message.chat.id, "Support", reply_markup=keyboard)
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
-    # Echo the received message text
-    bot.reply_to(message, f"You said: {message.text}")
+    if is_authorized(message.from_user.id):
+        if len(message.text) == 3 and message.text.isdigit():
+            prediction = random.choice(result)
+            bot.reply_to(message, f"\n\nNEXT PREDICTION IS: {prediction}")
+        else:
+            bot.reply_to(message, "Invalid input. Please enter the last 3 digits of the period number.")
+    else:
+        bot.reply_to(message, "You are not authorized to use this bot.")
 
-# Start polling to receive messages
-bot.polling(none_stop=True)
+bot.polling()
+
